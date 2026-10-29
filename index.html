@@ -396,6 +396,23 @@ footer .ft{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--mut
   .ach-grid{grid-template-columns:repeat(3,1fr)}
   .nav-links{display:none}
   .map3d-cards{grid-template-columns:repeat(2,1fr)}
+  .section{padding:56px 20px}
+  .section-title{font-size:30px}
+  .hero{padding:100px 20px 60px}
+  #map3d{height:380px}
+}
+@media(max-width:600px){
+  .inventory{grid-template-columns:1fr}
+  .ach-grid{grid-template-columns:repeat(2,1fr)}
+  .map3d-cards{grid-template-columns:repeat(2,1fr);gap:8px}
+  .map3d-card{padding:10px}
+  .section{padding:40px 14px}
+  .section-title{font-size:24px}
+  .hero{padding:88px 16px 48px}
+  #map3d{height:300px}
+  .map3d-hint{display:none}
+  .map3d-legend{gap:6px;left:10px;bottom:10px}
+  .map3d-legend .lg-item{font-size:10px;padding:3px 7px}
 }
 </style>
 </head>
@@ -662,51 +679,74 @@ footer .ft{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--mut
 </div>
 
 <script>
-/* ============ 自定义光标 ============ */
-const cursor=document.getElementById('cursor'),dot=document.getElementById('cursorDot');
-let cx=0,cy=0,dx=0,dy=0;
-document.addEventListener('mousemove',e=>{
-  dx=e.clientX;dy=e.clientY;dot.style.left=dx+'px';dot.style.top=dy+'px';
-});
-function loopCursor(){cx+=(dx-cx)*.15;cy+=(dy-cy)*.15;cursor.style.left=cx+'px';cursor.style.top=cy+'px';requestAnimationFrame(loopCursor);}
-loopCursor();
-document.querySelectorAll('a,button,.skill-btn,.mat-chip,.ach,.item-card').forEach(el=>{
-  el.addEventListener('mouseenter',()=>cursor.classList.add('hover'));
-  el.addEventListener('mouseleave',()=>cursor.classList.remove('hover'));
-});
+/* ============ 设备能力探测 ============ */
+const isTouch=matchMedia('(hover:none), (pointer:coarse)').matches;
+const isSmall=matchMedia('(max-width:900px)').matches;
+const reduceMotion=matchMedia('(prefers-reduced-motion:reduce)').matches;
 
-/* ============ Canvas 粒子背景 ============ */
+/* ============ 自定义光标（仅桌面端启用） ============ */
+if(isTouch){
+  document.getElementById('cursor').style.display='none';
+  document.getElementById('cursorDot').style.display='none';
+}else{
+  const cursor=document.getElementById('cursor'),dot=document.getElementById('cursorDot');
+  let cx=0,cy=0,dx=0,dy=0;
+  document.addEventListener('mousemove',e=>{
+    dx=e.clientX;dy=e.clientY;dot.style.left=dx+'px';dot.style.top=dy+'px';
+  });
+  function loopCursor(){cx+=(dx-cx)*.15;cy+=(dy-cy)*.15;cursor.style.left=cx+'px';cursor.style.top=cy+'px';requestAnimationFrame(loopCursor);}
+  loopCursor();
+  document.querySelectorAll('a,button,.skill-btn,.mat-chip,.ach,.item-card').forEach(el=>{
+    el.addEventListener('mouseenter',()=>cursor.classList.add('hover'));
+    el.addEventListener('mouseleave',()=>cursor.classList.remove('hover'));
+  });
+}
+
+/* ============ Canvas 粒子背景（按设备降级） ============ */
 const cvs=document.getElementById('particleCanvas');
 const ctx=cvs.getContext('2d');
-let W=cvs.width=window.innerWidth,H=cvs.height=window.innerHeight;
-const particles=[];
+const DPR=isTouch?1:Math.min(window.devicePixelRatio,2);
+let W=0,H=0;
 const COLORS=['#00ffd5','#00c2ff','#a855f7','#ffd166'];
-for(let i=0;i<80;i++){
+const COUNT=isTouch||isSmall?32:80;
+const LINK_DIST=120,LINK_DIST2=LINK_DIST*LINK_DIST;
+const SHOW_LINKS=!isTouch;
+const particles=[];
+function sizeCanvas(){
+  W=window.innerWidth;H=window.innerHeight;
+  cvs.width=W*DPR;cvs.height=H*DPR;
+  cvs.style.width=W+'px';cvs.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+sizeCanvas();
+for(let i=0;i<COUNT;i++){
   particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*2+.5,c:COLORS[Math.floor(Math.random()*COLORS.length)]});
 }
 function drawParticles(){
   ctx.clearRect(0,0,W,H);
-  particles.forEach(p=>{
+  for(const p of particles){
     p.x+=p.vx;p.y+=p.vy;
     if(p.x<0||p.x>W)p.vx*=-1;
     if(p.y<0||p.y>H)p.vy*=-1;
     ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.c;ctx.globalAlpha=.6;ctx.fill();
-  });
-  // 连线
-  for(let i=0;i<particles.length;i++){
-    for(let j=i+1;j<particles.length;j++){
-      const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<120){
-        ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);
-        ctx.strokeStyle=`rgba(0,255,213,${.15*(1-dist/120)})`;ctx.lineWidth=.5;ctx.stroke();
+  }
+  if(SHOW_LINKS){
+    for(let i=0;i<particles.length;i++){
+      const a=particles[i];
+      for(let j=i+1;j<particles.length;j++){
+        const b=particles[j];
+        const dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;
+        if(d2<LINK_DIST2){
+          ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+          ctx.strokeStyle=`rgba(0,255,213,${.15*(1-Math.sqrt(d2)/LINK_DIST)})`;ctx.lineWidth=.5;ctx.stroke();
+        }
       }
     }
   }
   requestAnimationFrame(drawParticles);
 }
 drawParticles();
-window.addEventListener('resize',()=>{W=cvs.width=window.innerWidth;H=cvs.height=window.innerHeight;});
+window.addEventListener('resize',sizeCanvas);
 
 /* ============ 应力副本 ============ */
 const stressRules={humid:{a1:20,a2:60,flag:true,pos:{x:140,y:130}},salt:{a1:25,a2:70,flag:true,pos:{x:400,y:220}},dust:{a1:85,a2:10,flag:false,pos:{x:320,y:140}},wear:{a1:90,a2:5,flag:false,pos:{x:220,y:280}},uv:{a1:40,a2:45,flag:false,pos:{x:300,y:200}}};
@@ -1060,8 +1100,10 @@ scene.fog=new THREE.FogExp2(0x050B14,0.008);
 const camera=new THREE.PerspectiveCamera(45,1,0.1,2000);
 camera.position.set(0,90,140);
 
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const isTouch=matchMedia('(hover:none), (pointer:coarse)').matches;
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:!isTouch,alpha:true});
+renderer.setPixelRatio(isTouch?1.5:Math.min(window.devicePixelRatio,2));
 renderer.setClearColor(0x050B14,1);
 
 const controls=new OrbitControls(camera,canvas);
@@ -1069,6 +1111,14 @@ controls.enableDamping=true;controls.dampingFactor=0.08;
 controls.minDistance=60;controls.maxDistance=300;
 controls.maxPolarAngle=Math.PI/2.1;
 controls.autoRotate=true;controls.autoRotateSpeed=0.3;
+
+if(isTouch){
+  // OrbitControls 默认把 canvas 的 touch-action 设为 none，会锁死页面滚动
+  // 触屏上恢复纵向滚动，并关闭单指旋转（保留自动旋转）
+  canvas.style.touchAction='pan-y';
+  controls.enableRotate=false;
+  controls.enablePan=false;
+}
 
 // ============ 中国简化轮廓 (近似多边形) ============
 const chinaPts=[
@@ -1275,7 +1325,7 @@ animate();
 
 // ============ 自适应 ============
 function resize(){
-  const w=wrap.clientWidth,h=520;
+  const w=wrap.clientWidth,h=canvas.clientHeight||520;
   renderer.setSize(w,h,false);
   camera.aspect=w/h;
   camera.updateProjectionMatrix();
