@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>南亚光伏产业与材料决策智脑 · 光伏纪元</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<style>
+/* ============ 全局变量 ============ */
+:root{
+  --bg:#050B14;
+  --bg2:#071322;
+  --panel:rgba(12,28,48,0.7);
+  --cyan:#00ffd5;
+  --cyan2:#00c2ff;
+  --gold:#ffd166;
+  --purple:#a855f7;
+  --green:#34d399;
+  --red:#ff3a6a;
+  --text:#e6f6ff;
+  --muted:#7fa3ba;
+  --border:rgba(0,255,213,0.2);
+  --glow:0 0 20px rgba(0,255,213,0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);font-family:"Noto Sans SC","Space Grotesk",sans-serif;
+  overflow-x:hidden;cursor:none;
+}
+::selection{background:rgba(0,255,213,0.3)}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:#030712}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#00ffd5,#a855f7);border-radius:4px}
+
+/* 字体工具类 */
+.font-display{font-family:"Space Grotesk","Noto Sans SC",sans-serif}
+.font-mono{font-family:"JetBrains Mono",monospace}
+.font-num{font-family:"Orbitron",monospace}
+
+/* ============ 自定义光标 ============ */
+.cursor{
+  position:fixed;width:24px;height:24px;border:1.5px solid var(--cyan);
+  border-radius:50%;pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);transition:width .2s,height .2s,background .2s;
+  box-shadow:0 0 12px rgba(0,255,213,0.6);mix-blend-mode:screen;
+}
+.cursor-dot{
+  position:fixed;width:5px;height:5px;background:var(--cyan);border-radius:50%;
+  pointer-events:none;z-index:9999;transform:translate(-50%,-50%);
+  box-shadow:0 0 8px var(--cyan);
+}
+.cursor.hover{width:40px;height:40px;background:rgba(0,255,213,0.15)}
+
+/* ============ 粒子画布 ============ */
+#particleCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+.noise{
+  position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.grid-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.08;
+  background-image:linear-gradient(rgba(0,255,213,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,213,0.5) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+
+/* ============ 通用工具 ============ */
+.section{position:relative;z-index:2;padding:80px 40px;max-width:1440px;margin:0 auto}
+.section-title{
+  font-family:"Space Grotesk",sans-serif;font-size:42px;font-weight:700;
+  background:linear-gradient(90deg,var(--cyan),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:8px;letter-spacing:2px;
+}
+.section-sub{color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:2px;margin-bottom:40px}
+.glow-text{text-shadow:0 0 20px rgba(0,255,213,0.5)}
+.card-glass{
+  background:linear-gradient(135deg,rgba(12,28,48,0.7),rgba(7,19,34,0.5));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--border);border-radius:16px;position:relative;overflow:hidden;
+}
+.card-glass::before{
+  content:"";position:absolute;inset:0;border-radius:16px;padding:1px;
+  background:linear-gradient(135deg,rgba(0,255,213,0.5),transparent 40%,transparent 60%,rgba(168,85,247,0.4));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:12px 28px;font-family:"Space Grotesk",sans-serif;font-weight:600;
+  letter-spacing:1px;border-radius:8px;cursor:pointer;transition:all .3s;border:none;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.btn-primary{background:linear-gradient(135deg,var(--cyan2),var(--cyan));color:#03151f;box-shadow:0 0 24px rgba(0,255,213,0.5)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(0,255,213,0.8)}
+.btn-ghost{background:rgba(0,255,213,0.08);color:var(--cyan);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(0,255,213,0.18)}
+
+/* ============ 导航栏 ============ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;padding:16px 40px;
+  background:rgba(5,11,20,0.7);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav-brand{display:flex;align-items:center;gap:10px;font-family:"Space Grotesk",sans-serif;font-weight:700;color:var(--cyan)}
+.nav-brand .logo-dot{width:12px;height:12px;background:var(--cyan);border-radius:2px;box-shadow:0 0 10px var(--cyan);animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.nav-links{display:flex;gap:28px}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:13px;font-family:"JetBrains Mono",monospace;letter-spacing:1px;transition:color .2s;position:relative}
+.nav-links a:hover{color:var(--cyan)}
+.nav-links a::after{content:"";position:absolute;bottom:-6px;left:0;width:0;height:1px;background:var(--cyan);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-xp{display:flex;align-items:center;gap:10px}
+.xp-bar{width:120px;height:6px;background:rgba(0,255,213,0.1);border-radius:3px;overflow:hidden;border:1px solid var(--border)}
+.xp-bar .fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--gold));width:0;transition:width .5s}
+.xp-label{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--cyan)}
+
+/* ============ HERO 主菜单 ============ */
+.hero{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:120px 40px 80px;text-align:center}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;
+  background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.4);
+  color:#d8b4fe;font-size:12px;font-family:"JetBrains Mono",monospace;margin-bottom:28px;
+  animation:badgePulse 2s infinite;
+}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 rgba(168,85,247,0)}50%{box-shadow:0 0 20px rgba(168,85,247,0.5)}}
+.hero h1{
+  font-family:"Space Grotesk",sans-serif;font-size:clamp(48px,8vw,110px);font-weight:700;line-height:1.05;
+  background:linear-gradient(135deg,#fff 0%,var(--cyan) 50%,var(--gold) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 40px rgba(0,255,213,0.3));
+}
+.hero h1 .accent{background:linear-gradient(90deg,var(--gold),#ff8c42);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-desc{max-width:700px;color:#a8c5d6;font-size:17px;line-height:1.8;margin:24px auto 40px}
+.hero-cta{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.hero-map{
+  margin-top:60px;position:relative;width:min(720px,90vw);height:280px;
+  border:1px solid var(--border);border-radius:16px;background:radial-gradient(ellipse at center,rgba(0,255,213,0.08),transparent 70%);
+  overflow:hidden;
+}
+.hero-map .corner{position:absolute;width:24px;height:24px;border-color:var(--cyan)}
+.hero-map .c-tl{top:8px;left:8px;border-top:2px solid;border-left:2px solid}
+.hero-map .c-tr{top:8px;right:8px;border-top:2px solid;border-right:2px solid}
+.hero-map .c-bl{bottom:8px;left:8px;border-bottom:2px solid;border-left:2px solid}
+.hero-map .c-br{bottom:8px;right:8px;border-bottom:2px solid;border-right:2px solid}
+.hero-map svg{width:100%;height:100%}
+.map-flow{stroke:var(--cyan);stroke-width:1.5;fill:none;stroke-dasharray:6 6;animation:flow 3s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-24}}
+.map-pt{fill:var(--cyan);filter:drop-shadow(0 0 6px var(--cyan))}
+.map-pt.main{r:6;fill:var(--gold);filter:drop-shadow(0 0 10px var(--gold))}
+.hero-stats{display:flex;gap:40px;margin-top:40px;flex-wrap:wrap;justify-content:center}
+.hero-stat .num{font-family:"Orbitron",monospace;font-size:36px;font-weight:700;color:var(--cyan);text-shadow:var(--glow)}
+.hero-stat .lbl{font-size:12px;color:var(--muted);margin-top:4px;font-family:"JetBrains Mono",monospace}
+
+/* ============ 应力模拟器 - Boss战 ============ */
+.boss-arena{display:grid;grid-template-columns:1.3fr 1fr;gap:24px}
+.boss-map{height:420px;position:relative;border-radius:16px;overflow:hidden;background:radial-gradient(ellipse at 40% 50%,rgba(0,255,213,0.1),transparent 60%)}
+.boss-map svg{width:100%;height:100%}
+.skills{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+.skill-btn{
+  position:relative;padding:14px 8px;background:rgba(12,28,48,0.6);border:1px solid var(--border);
+  border-radius:10px;cursor:pointer;transition:all .3s;text-align:center;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+}
+.skill-btn:hover{border-color:var(--cyan);background:rgba(0,255,213,0.08)}
+.skill-btn.active{background:linear-gradient(180deg,rgba(0,255,213,0.2),rgba(0,194,255,0.1));border-color:var(--cyan);box-shadow:0 0 20px rgba(0,255,213,0.4)}
+.skill-btn .ico{font-size:22px;display:block;margin-bottom:4px}
+.skill-btn .nm{font-size:12px;color:var(--cyan);font-weight:600}
+.skill-btn .dk{font-size:10px;color:var(--muted);margin-top:2px;font-family:"JetBrains Mono",monospace}
+.skill-btn .cd{position:absolute;top:4px;right:4px;font-size:9px;color:var(--gold);font-family:"JetBrains Mono",monospace}
+
+/* Boss 面板 */
+.boss-panel{display:flex;flex-direction:column;gap:14px}
+.boss-head{display:flex;align-items:center;gap:12px;padding:14px}
+.boss-avatar{
+  width:56px;height:56px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,#1a0a3e,#6b21a8);
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  box-shadow:0 0 20px rgba(168,85,247,0.5);
+}
+.boss-name{font-family:"Space Grotesk",sans-serif;font-size:18px;font-weight:700;color:var(--gold)}
+.boss-lv{font-family:"JetBrains Mono",monospace;font-size:11px;color:#d8b4fe}
+.hp-block{padding:10px 14px}
+.hp-label{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:11px;margin-bottom:4px}
+.hp-label .nm{color:var(--cyan)}
+.hp-bar{height:14px;background:rgba(0,0,0,0.5);border-radius:7px;overflow:hidden;border:1px solid var(--border);position:relative}
+.hp-fill{height:100%;transition:width .8s ease;border-radius:7px}
+.hp-fill.a1{background:linear-gradient(90deg,#34d399,#00ffd5)}
+.hp-fill.a2{background:linear-gradient(90deg,#a855f7,#6366f1)}
+.hp-fill.low{background:linear-gradient(90deg,#ff3a6a,#ff8c42);animation:hpBlink .5s infinite}
+@keyframes hpBlink{0%,100%{opacity:1}50%{opacity:.6}}
+
+.boss-warn{
+  margin-top:auto;padding:14px;border-radius:10px;display:none;
+  background:rgba(255,58,106,0.12);border:1px solid rgba(255,58,106,0.5);
+  color:#ff8aa5;font-size:13px;line-height:1.7;
+  box-shadow:0 0 24px rgba(255,58,106,0.3);
+}
+.boss-warn.show{display:block;animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+/* ============ 产业图鉴 - 物品栏 ============ */
+.inventory{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.item-card{
+  position:relative;padding:18px;border-radius:14px;cursor:pointer;transition:all .4s;
+  background:linear-gradient(180deg,rgba(12,28,48,0.8),rgba(7,19,34,0.6));
+  overflow:hidden;
+}
+.item-card:hover{transform:translateY(-6px)}
+.item-card .rarity{position:absolute;top:0;left:0;right:0;height:3px}
+.rarity.common{background:linear-gradient(90deg,#94a3b8,#cbd5e1)}
+.rarity.rare{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.rarity.epic{background:linear-gradient(90deg,#a855f7,#c084fc)}
+.rarity.legendary{background:linear-gradient(90deg,#f59e0b,#fbbf24,#f59e0b);box-shadow:0 0 12px #f59e0b}
+.item-cover{height:140px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:14px;position:relative;overflow:hidden}
+.item-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(5,11,20,0.9))}
+.item-cover.g1{background:linear-gradient(135deg,#0a4b6e,#00c2ff)}
+.item-cover.g2{background:linear-gradient(135deg,#3a0a4b,#a855f7)}
+.item-cover.g3{background:linear-gradient(135deg,#0a4b2e,#34d399)}
+.item-cover.g4{background:linear-gradient(135deg,#4b2e0a,#f59e0b)}
+.item-cover span{position:relative;z-index:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5))}
+.item-title{font-family:"Space Grotesk",sans-serif;font-size:16px;font-weight:700;color:#fff;margin-bottom:6px}
+.item-rarity-tag{display:inline-block;padding:2px 8px;font-size:10px;font-family:"JetBrains Mono",monospace;border-radius:4px;margin-bottom:8px}
+.r-tag.common{background:rgba(148,163,184,0.2);color:#cbd5e1}
+.r-tag.rare{background:rgba(59,130,246,0.2);color:#60a5fa}
+.r-tag.epic{background:rgba(168,85,247,0.2);color:#c084fc}
+.r-tag.legendary{background:rgba(245,158,11,0.2);color:#fbbf24}
+.item-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.item-stat{padding:4px 6px;background:rgba(0,255,213,0.06);border-radius:4px;font-family:"JetBrains Mono",monospace;font-size:11px}
+.item-stat .s-n{color:var(--cyan);font-weight:700}
+.item-stat .s-l{color:var(--muted);display:block;font-size:9px}
+.item-card:hover .rarity.legendary{animation:legendaryGlow 1.5s infinite}
+@keyframes legendaryGlow{0%,100%{box-shadow:0 0 12px #f59e0b}50%{box-shadow:0 0 24px #fbbf24,0 0 36px #f59e0b}}
+
+/* 物品详情弹窗 */
+.item-modal-mask{position:fixed;inset:0;background:rgba(0,5,15,0.88);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.item-modal-mask.show{display:flex}
+.item-modal{width:min(560px,94vw);border-radius:18px;padding:28px;max-height:85vh;overflow-y:auto}
+.item-modal .rarity{margin:-28px -28px 20px;height:4px;border-radius:18px 18px 0 0}
+.im-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px}
+.im-cover{width:90px;height:90px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;flex-shrink:0}
+.im-title{font-family:"Space Grotesk",sans-serif;font-size:24px;font-weight:700;color:#fff}
+.im-sub{color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:12px;margin-top:4px}
+.im-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.im-stat{padding:12px;background:rgba(0,255,213,0.06);border:1px solid var(--border);border-radius:8px;text-align:center}
+.im-stat .n{font-family:"Orbitron",monospace;font-size:20px;font-weight:700;color:var(--cyan)}
+.im-stat .l{font-size:11px;color:var(--muted);margin-top:2px}
+.im-para{font-size:14px;color:#c8e6f4;line-height:1.9;margin-bottom:16px}
+.im-para b{color:var(--gold)}
+.im-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.im-tag{padding:4px 12px;font-size:11px;background:rgba(0,255,213,0.1);border:1px solid var(--border);border-radius:12px;color:var(--cyan);font-family:"JetBrains Mono",monospace}
+.im-close{width:100%;padding:12px;background:linear-gradient(135deg,var(--cyan2),var(--cyan));color:#03151f;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:"Space Grotesk",sans-serif;letter-spacing:1px}
+
+/* ============ 材料合成实验室 ============ */
+.alchemy-wrap{display:grid;grid-template-columns:1fr 1.2fr;gap:24px}
+.alchemy-slots{display:flex;flex-direction:column;gap:16px}
+.alchemy-slot{
+  min-height:120px;border:2px dashed var(--border);border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:rgba(7,19,34,0.5);transition:all .3s;
+}
+.alchemy-slot.filled{border-style:solid;border-color:var(--cyan);background:rgba(0,255,213,0.06)}
+.alchemy-slot .slot-ico{font-size:36px}
+.alchemy-slot .slot-nm{font-family:"Space Grotesk",sans-serif;color:var(--cyan);font-weight:600}
+.alchemy-slot .slot-empty{color:var(--muted);font-size:12px;font-family:"JetBrains Mono",monospace}
+.material-pool{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.mat-chip{
+  padding:12px 8px;border-radius:10px;background:rgba(12,28,48,0.6);border:1px solid var(--border);
+  cursor:pointer;transition:all .25s;text-align:center;
+}
+.mat-chip:hover{border-color:var(--gold);transform:translateY(-2px)}
+.mat-chip .m-ico{font-size:22px;display:block}
+.mat-chip .m-nm{font-size:11px;color:var(--text);margin-top:4px;font-weight:500}
+
+.alchemy-result{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  padding:30px;text-align:center;min-height:300px;
+}
+.alchemy-cauldron{
+  width:140px;height:140px;border-radius:50%;position:relative;
+  background:radial-gradient(circle at 30% 30%,#1a0a3e,#0a0518);
+  border:2px solid var(--purple);box-shadow:0 0 40px rgba(168,85,247,0.4);
+  display:flex;align-items:center;justify-content:center;font-size:60px;
+}
+.alchemy-cauldron.active{animation:cauldronGlow 1.5s infinite}
+@keyframes cauldronGlow{0%,100%{box-shadow:0 0 40px rgba(168,85,247,0.4)}50%{box-shadow:0 0 70px rgba(0,255,213,0.7)}}
+.alchemy-cauldron .ring{position:absolute;inset:-8px;border:1px dashed var(--cyan);border-radius:50%;opacity:.5;animation:spin 4s linear infinite}
+.synth-btn{padding:14px 40px;font-size:15px}
+.synth-progress{width:100%;height:6px;background:rgba(0,255,213,0.1);border-radius:3px;overflow:hidden;display:none}
+.synth-progress.show{display:block}
+.synth-progress .bar{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--gold));transition:width .1s}
+.synth-output{
+  width:100%;padding:16px;border-radius:10px;background:rgba(0,255,213,0.06);
+  border:1px solid var(--border);display:none;
+}
+.synth-output.show{display:block;animation:fadeUp .4s}
+.synth-output .out-t{font-family:"Space Grotesk",sans-serif;font-size:18px;font-weight:700;color:var(--cyan);margin-bottom:6px}
+.synth-output .out-d{font-size:13px;color:#a8c5d6;line-height:1.7}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============ 数据战报 ============ */
+.dashboard{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.chart-card{padding:24px}
+.chart-title{font-family:"Space Grotesk",sans-serif;font-size:16px;color:var(--cyan);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.chart-title::before{content:"";width:8px;height:8px;background:var(--cyan);border-radius:2px}
+.bar-chart{display:flex;flex-direction:column;gap:10px}
+.bar-row{display:flex;align-items:center;gap:12px}
+.bar-row .ctry{width:70px;font-size:12px;color:var(--text);font-family:"JetBrains Mono",monospace}
+.bar-track{flex:1;height:24px;background:rgba(0,255,213,0.06);border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;display:flex;align-items:center;padding-left:8px;font-family:"JetBrains Mono",monospace;font-size:10px;color:#03151f;font-weight:700;transition:width 1.2s ease}
+.bar-fill.bd{background:linear-gradient(90deg,#00c2ff,#00ffd5)}
+.bar-fill.in{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.bar-fill.vn{background:linear-gradient(90deg,#34d399,#10b981)}
+.bar-fill.pk{background:linear-gradient(90deg,#a855f7,#c084fc)}
+.bar-fill.th{background:linear-gradient(90deg,#ff3a6a,#ff8c42)}
+
+.radar-wrap{display:flex;align-items:center;justify-content:center}
+.radar-wrap svg{width:100%;max-width:360px}
+
+/* ============ AI 终端 - NPC对话 ============ */
+.terminal{border-radius:16px;overflow:hidden;border:1px solid var(--border);background:#050d1a}
+.term-bar{display:flex;align-items:center;gap:8px;padding:12px 18px;background:rgba(0,255,213,0.06);border-bottom:1px solid var(--border)}
+.term-bar .dot{width:10px;height:10px;border-radius:50%}
+.dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+.term-bar .title{margin-left:12px;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--cyan)}
+.term-bar .lvl{margin-left:auto;padding:3px 10px;background:rgba(168,85,247,0.2);border-radius:10px;font-size:11px;color:#d8b4fe;font-family:"JetBrains Mono",monospace}
+.term-body{padding:20px;font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.9;min-height:200px;max-height:320px;overflow-y:auto}
+.term-body .t-line{margin-bottom:6px}
+.term-body .t-prompt{color:var(--cyan)}
+.term-body .t-cmd{color:#7fffdd}
+.term-body .t-out{color:#c8e6f4;white-space:pre-wrap}
+.term-body .t-warn{color:#ff5a7a;font-weight:600}
+.term-body .blink{display:inline-block;width:8px;height:14px;background:var(--cyan);margin-left:2px;animation:blink 1s infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.term-input-row{display:flex;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid var(--border)}
+.term-input-row .sign{color:var(--cyan);font-weight:700;font-size:16px;text-shadow:0 0 8px var(--cyan)}
+.term-input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:"JetBrains Mono",monospace;font-size:13px}
+.term-sug{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-top:1px dashed var(--border)}
+.term-sug .sug{padding:6px 12px;font-size:11px;color:var(--muted);background:rgba(0,255,213,0.06);border:1px solid var(--border);border-radius:14px;cursor:pointer;transition:all .2s}
+.term-sug .sug:hover{color:var(--cyan);border-color:var(--cyan);background:rgba(0,255,213,0.12)}
+
+/* ============ 成就墙 ============ */
+.ach-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.ach{
+  aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;background:linear-gradient(180deg,rgba(12,28,48,0.7),rgba(7,19,34,0.5));
+  border:1px solid var(--border);transition:all .3s;position:relative;
+}
+.ach.unlocked{border-color:var(--gold);box-shadow:0 0 16px rgba(255,209,102,0.3)}
+.ach .a-ico{font-size:32px;filter:grayscale(1);opacity:.5}
+.ach.unlocked .a-ico{filter:grayscale(0);opacity:1}
+.ach .a-nm{font-size:10px;color:var(--muted);text-align:center;padding:0 4px;font-family:"JetBrains Mono",monospace}
+.ach.unlocked .a-nm{color:var(--gold)}
+.ach:hover.unlocked{transform:scale(1.08)}
+
+/* ============ Footer ============ */
+footer{position:relative;z-index:2;padding:40px;text-align:center;border-top:1px solid var(--border);margin-top:60px}
+footer .ft{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
+
+/* ============ 3D 中国战略地图 ============ */
+.map3d-wrap{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--border);background:#030712}
+#map3d{width:100%;height:520px;display:block}
+.map3d-overlay{position:absolute;top:14px;left:14px;z-index:3;pointer-events:none}
+.map3d-overlay .m-title{font-family:"Space Grotesk",sans-serif;font-size:14px;color:var(--cyan);font-weight:700;letter-spacing:1px}
+.map3d-overlay .m-sub{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-top:2px}
+.map3d-legend{position:absolute;bottom:14px;left:14px;z-index:3;display:flex;gap:12px;flex-wrap:wrap}
+.map3d-legend .lg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:"JetBrains Mono",monospace;background:rgba(5,11,20,0.7);padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
+.map3d-legend .lg-dot{width:8px;height:8px;border-radius:50%}
+.map3d-hint{position:absolute;top:14px;right:14px;z-index:3;font-size:11px;color:var(--muted);font-family:"JetBrains Mono",monospace;background:rgba(5,11,20,0.7);padding:6px 12px;border-radius:6px;border:1px solid var(--border)}
+.map3d-tooltip{
+  position:absolute;z-index:4;padding:10px 14px;border-radius:8px;pointer-events:none;
+  background:rgba(7,19,34,0.95);border:1px solid var(--cyan);box-shadow:0 0 20px rgba(0,255,213,0.4);
+  font-family:"JetBrains Mono",monospace;font-size:12px;display:none;min-width:160px;
+}
+.map3d-tooltip .t-name{color:var(--cyan);font-weight:700;font-family:"Space Grotesk",sans-serif;font-size:14px;margin-bottom:4px}
+.map3d-tooltip .t-row{color:#c8e6f4;line-height:1.6}
+.map3d-tooltip .t-val{color:var(--gold)}
+
+/* 3D 地图数据卡片 */
+.map3d-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.map3d-card{padding:12px 14px;background:linear-gradient(135deg,rgba(12,28,48,0.7),rgba(7,19,34,0.5));border:1px solid var(--border);border-radius:10px;position:relative;overflow:hidden}
+.map3d-card::after{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--cyan)}
+.map3d-card .mc-n{font-family:"Orbitron",monospace;font-size:20px;font-weight:700;color:var(--cyan);text-shadow:0 0 10px rgba(0,255,213,0.4)}
+.map3d-card .mc-l{font-size:11px;color:var(--muted);margin-top:2px;font-family:"JetBrains Mono",monospace}
+
+/* ============ 响应式 ============ */
+@media(max-width:900px){
+  .boss-arena,.alchemy-wrap,.dashboard{grid-template-columns:1fr}
+  .inventory{grid-template-columns:repeat(2,1fr)}
+  .ach-grid{grid-template-columns:repeat(3,1fr)}
+  .nav-links{display:none}
+  .map3d-cards{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- 背景层 -->
+<canvas id="particleCanvas"></canvas>
+<div class="grid-bg"></div>
+<div class="noise"></div>
+
+<!-- 自定义光标 -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<!-- 导航 -->
+<nav>
+  <div class="nav-brand"><span class="logo-dot"></span> SA PV · 光伏纪元</div>
+  <div class="nav-links">
+    <a href="#hero">主菜单</a>
+    <a href="#boss">应力副本</a>
+    <a href="#inventory">产业图鉴</a>
+    <a href="#chinamap">中国版图</a>
+    <a href="#alchemy">材料合成</a>
+    <a href="#dashboard">数据战报</a>
+    <a href="#terminal">决策终端</a>
+    <a href="#achieve">成就墙</a>
+  </div>
+  <div class="nav-xp">
+    <span class="xp-label">LV.<span id="xpLvl">1</span></span>
+    <div class="xp-bar"><div class="fill" id="xpFill"></div></div>
+  </div>
+</nav>
+
+<!-- ===================== HERO 主菜单 ===================== -->
+<section class="hero" id="hero">
+  <div class="hero-badge">⚡ 南亚光伏产业与材料决策智脑 · v2.0</div>
+  <h1>南亚光伏<br><span class="accent">材料决策智脑</span></h1>
+  <p class="hero-desc">在这片横跨孟加拉、印度、巴基斯坦、越南的光伏战场上，你将化身材料工程师，操控应力副本、合成封装材料、解锁绿色产业图鉴。每一次决策，都在塑造南亚能源的未来。</p>
+  <div class="hero-cta">
+    <button class="btn btn-primary" onclick="document.getElementById('boss').scrollIntoView({behavior:'smooth'})">
+      ▶ 开始任务
+    </button>
+    <button class="btn btn-ghost" onclick="document.getElementById('inventory').scrollIntoView({behavior:'smooth'})">
+      浏览图鉴
+    </button>
+  </div>
+
+  <!-- 南亚地图 -->
+  <div class="hero-map">
+    <span class="corner c-tl"></span><span class="corner c-tr"></span>
+    <span class="corner c-bl"></span><span class="corner c-br"></span>
+    <svg viewBox="0 0 720 280" preserveAspectRatio="xMidYMid meet">
+      <path class="map-flow" d="M60,140 Q180,80 280,120 T480,100 T660,140"/>
+      <path class="map-flow" d="M100,200 Q220,240 340,200 T580,220 T680,180"/>
+      <circle class="map-pt main" cx="200" cy="110" r="6"/>
+      <text x="200" y="100" text-anchor="middle" fill="#ffd166" font-size="11" font-family="JetBrains Mono">孟加拉</text>
+      <circle class="map-pt" cx="400" cy="130" r="4"/>
+      <text x="400" y="120" text-anchor="middle" fill="#00ffd5" font-size="10" font-family="JetBrains Mono">印度</text>
+      <circle class="map-pt" cx="520" cy="180" r="4"/>
+      <text x="520" y="170" text-anchor="middle" fill="#00ffd5" font-size="10" font-family="JetBrains Mono">巴基斯坦</text>
+      <circle class="map-pt" cx="300" cy="220" r="4"/>
+      <text x="300" y="210" text-anchor="middle" fill="#00ffd5" font-size="10" font-family="JetBrains Mono">越南</text>
+      <circle class="map-pt" cx="140" cy="170" r="3"/>
+      <circle class="map-pt" cx="480" cy="240" r="3"/>
+    </svg>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">1.529</div><div class="lbl">孟加拉装机 GW</div></div>
+    <div class="hero-stat"><div class="num">384.8</div><div class="lbl">纺织出口 亿美元</div></div>
+    <div class="hero-stat"><div class="num">99.6%</div><div class="lbl">Fe-Mn 除砷率</div></div>
+    <div class="hero-stat"><div class="num">4 GW</div><div class="lbl">2030 目标</div></div>
+  </div>
+</section>
+
+<!-- ===================== 应力副本 ===================== -->
+<section class="section" id="boss">
+  <div class="section-title">应力副本</div>
+  <div class="section-sub">// BOSS FIGHT · ENVIRONMENTAL STRESS · 选择技能击溃南亚极端环境</div>
+  <div class="boss-arena">
+    <div class="card-glass" style="padding:18px">
+      <div class="boss-map">
+        <svg viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="1" fill="rgba(0,255,213,0.15)"/>
+            </pattern>
+          </defs>
+          <rect width="500" height="400" fill="url(#dots)"/>
+          <path class="map-flow" d="M50,200 Q150,100 250,150 T450,120"/>
+          <path class="map-flow" d="M100,320 Q200,260 300,300 T480,270"/>
+          <!-- 国家节点 -->
+          <g>
+            <circle class="map-pt" cx="140" cy="130" r="5"/>
+            <text x="140" y="120" text-anchor="middle" fill="#7fffdd" font-size="10">孟加拉</text>
+          </g>
+          <g>
+            <circle class="map-pt" cx="320" cy="140" r="5"/>
+            <text x="320" y="130" text-anchor="middle" fill="#7fffdd" font-size="10">印度</text>
+          </g>
+          <g>
+            <circle class="map-pt" cx="400" cy="220" r="5"/>
+            <text x="400" y="210" text-anchor="middle" fill="#7fffdd" font-size="10">巴基斯坦</text>
+          </g>
+          <g>
+            <circle class="map-pt" cx="220" cy="280" r="5"/>
+            <text x="220" y="270" text-anchor="middle" fill="#7fffdd" font-size="10">越南</text>
+          </g>
+          <!-- 应力点 -->
+          <circle id="stressPt" cx="0" cy="0" r="7" fill="#ff3a6a" style="display:none">
+            <animate attributeName="r" values="7;12;7" dur="1s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;.5;1" dur="1s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      </div>
+      <div class="skills">
+        <button class="skill-btn" data-s="humid"><span class="ico">💧</span><span class="nm">高湿</span><span class="dk">HUMID</span><span class="cd">60s</span></button>
+        <button class="skill-btn" data-s="salt"><span class="ico">🧂</span><span class="nm">盐雾</span><span class="dk">SALT</span><span class="cd">90s</span></button>
+        <button class="skill-btn" data-s="dust"><span class="ico">🌫️</span><span class="nm">积尘</span><span class="dk">DUST</span><span class="cd">30s</span></button>
+        <button class="skill-btn" data-s="wear"><span class="ico">🧽</span><span class="nm">清洗磨损</span><span class="dk">WEAR</span><span class="cd">45s</span></button>
+        <button class="skill-btn" data-s="uv"><span class="ico">☀️</span><span class="nm">紫外</span><span class="dk">UV</span><span class="cd">120s</span></button>
+      </div>
+    </div>
+
+    <div class="card-glass boss-panel" style="padding:18px">
+      <div class="boss-head">
+        <div class="boss-avatar">🌡️</div>
+        <div>
+          <div class="boss-name">南亚极端环境 · BOSS</div>
+          <div class="boss-lv">LV.99 · 气候侵蚀体</div>
+        </div>
+      </div>
+      <div class="hp-block">
+        <div class="hp-label"><span class="nm">A1 · 前表面功能层 (抗积尘/抗磨损)</span><span id="a1Txt">100/100</span></div>
+        <div class="hp-bar"><div class="hp-fill a1" id="a1Bar" style="width:100%"></div></div>
+      </div>
+      <div class="hp-block">
+        <div class="hp-label"><span class="nm">A2 · 结构可靠性层 (抗腐蚀/耐老化)</span><span id="a2Txt">100/100</span></div>
+        <div class="hp-bar"><div class="hp-fill a2" id="a2Bar" style="width:100%"></div></div>
+      </div>
+      <div class="boss-warn" id="bossWarn">
+        ⚠️ 防护缺口：建议引入耐老化界面封装材料（参考 IEC 61701 标准），A2 层将持续受到侵蚀！
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 产业图鉴 ===================== -->
+<section class="section" id="inventory">
+  <div class="section-title">产业图鉴</div>
+  <div class="section-sub">// ITEM INVENTORY · 绿色产业装备库 · 点击卡片查看详情</div>
+  <div class="inventory" id="invGrid"></div>
+</section>
+
+<!-- ===================== 3D 中国光伏战略地图 ===================== -->
+<section class="section" id="chinamap">
+  <div class="section-title">中国光伏战略地图</div>
+  <div class="section-sub">// CHINA PV STRATEGY MAP · WebGL 着色器渲染 · 拖拽旋转 · 悬停查看基地详情</div>
+  <div class="map3d-wrap">
+    <canvas id="map3d"></canvas>
+    <div class="map3d-overlay">
+      <div class="m-title">🇨🇳 中国光伏产业版图</div>
+      <div class="m-sub">硅料 · 硅片 · 电池 · 组件 全产业链基地</div>
+    </div>
+    <div class="map3d-hint">🖱️ 拖拽旋转 · 滚轮缩放</div>
+    <div class="map3d-legend">
+      <div class="lg-item"><span class="lg-dot" style="background:#00ffd5"></span>硅料基地</div>
+      <div class="lg-item"><span class="lg-dot" style="background:#ffd166"></span>光伏电站</div>
+      <div class="lg-item"><span class="lg-dot" style="background:#a855f7"></span>组件制造</div>
+      <div class="lg-item"><span class="lg-dot" style="background:#ff3a6a"></span>特高压通道</div>
+    </div>
+    <div class="map3d-tooltip" id="map3dTip"></div>
+  </div>
+  <div class="map3d-cards">
+    <div class="map3d-card"><div class="mc-n">440 GW</div><div class="mc-l">累计装机 (2024)</div></div>
+    <div class="map3d-card"><div class="mc-n">85%</div><div class="mc-l">全球组件产量占比</div></div>
+    <div class="map3d-card"><div class="mc-n">90%</div><div class="mc-l">多晶硅全球产量占比</div></div>
+    <div class="map3d-card"><div class="mc-n">0.85元</div><div class="mc-l">组件成本 / W</div></div>
+  </div>
+</section>
+
+<!-- ===================== 材料合成实验室 ===================== -->
+<section class="section" id="alchemy">
+  <div class="section-title">材料合成实验室</div>
+  <div class="section-sub">// ALCHEMY LAB · 从基础材料合成光伏封装方案 · 选择 3 种材料开始合成</div>
+  <div class="alchemy-wrap">
+    <div class="card-glass" style="padding:20px">
+      <div class="alchemy-slots" id="alchSlots"></div>
+      <div style="margin-top:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-family:'JetBrains Mono',monospace">材料仓库 · 点击添加</div>
+        <div class="material-pool" id="matPool"></div>
+      </div>
+    </div>
+    <div class="card-glass alchemy-result">
+      <div class="alchemy-cauldron" id="cauldron">
+        <span class="ring"></span>
+        ⚗️
+      </div>
+      <div style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px" id="alchHint">
+        等待添加材料...
+      </div>
+      <button class="btn btn-primary synth-btn" id="synthBtn">开始合成</button>
+      <div class="synth-progress" id="synthProg"><div class="bar" id="synthBar"></div></div>
+      <div class="synth-output" id="synthOut"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 数据战报 ===================== -->
+<section class="section" id="dashboard">
+  <div class="section-title">数据战报</div>
+  <div class="section-sub">// DATA REPORT · 南亚光伏力量对比 & 材料能力雷达</div>
+  <div class="dashboard">
+    <div class="card-glass chart-card">
+      <div class="chart-title">南亚各国光伏装机对比 (GW)</div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    <div class="card-glass chart-card">
+      <div class="chart-title">封装材料能力雷达</div>
+      <div class="radar-wrap">
+        <svg viewBox="0 0 300 300" id="radarChart"></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== AI 决策终端 ===================== -->
+<section class="section" id="terminal">
+  <div class="section-title">决策终端</div>
+  <div class="section-sub">// AI TERMINAL · 与材料工程师 NPC 对话，获取专家建议</div>
+  <div class="terminal">
+    <div class="term-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="title">solar-brain@sa-pv:~$</span>
+      <span class="lvl">NPC · 材料工程师 LV.50</span>
+    </div>
+    <div class="term-body" id="termBody">
+      <div class="t-line"><span class="t-prompt">>> </span><span class="t-out">南亚光伏产业与材料决策智脑 · AI 决策终端已就绪</span></div>
+      <div class="t-line"><span class="t-prompt">>> </span><span class="t-out">请输入指令，或点击下方提示词开始对话</span></div>
+    </div>
+    <div class="term-sug" id="termSug"></div>
+    <div class="term-input-row">
+      <span class="sign">>_</span>
+      <input class="term-input" id="termInput" type="text" spellcheck="false" placeholder="输入指令，例如：分析孟加拉高温环境">
+      <button class="btn btn-primary" id="termExec" style="padding:8px 18px;font-size:12px">执行 ▶</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 成就墙 ===================== -->
+<section class="section" id="achieve">
+  <div class="section-title">成就墙</div>
+  <div class="section-sub">// ACHIEVEMENTS · 完成任务解锁成就</div>
+  <div class="ach-grid" id="achGrid"></div>
+</section>
+
+<footer>
+  <div class="ft">© 2026 SA PV BRAIN · 南亚光伏产业与材料决策智脑 · 仅供决策参考</div>
+</footer>
+
+<!-- 物品详情弹窗 -->
+<div class="item-modal-mask" id="itemMask">
+  <div class="item-modal card-glass" id="itemModal"></div>
+</div>
+
+<script>
+/* ============ 自定义光标 ============ */
+const cursor=document.getElementById('cursor'),dot=document.getElementById('cursorDot');
+let cx=0,cy=0,dx=0,dy=0;
+document.addEventListener('mousemove',e=>{
+  dx=e.clientX;dy=e.clientY;dot.style.left=dx+'px';dot.style.top=dy+'px';
+});
+function loopCursor(){cx+=(dx-cx)*.15;cy+=(dy-cy)*.15;cursor.style.left=cx+'px';cursor.style.top=cy+'px';requestAnimationFrame(loopCursor);}
+loopCursor();
+document.querySelectorAll('a,button,.skill-btn,.mat-chip,.ach,.item-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>cursor.classList.add('hover'));
+  el.addEventListener('mouseleave',()=>cursor.classList.remove('hover'));
+});
+
+/* ============ Canvas 粒子背景 ============ */
+const cvs=document.getElementById('particleCanvas');
+const ctx=cvs.getContext('2d');
+let W=cvs.width=window.innerWidth,H=cvs.height=window.innerHeight;
+const particles=[];
+const COLORS=['#00ffd5','#00c2ff','#a855f7','#ffd166'];
+for(let i=0;i<80;i++){
+  particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*2+.5,c:COLORS[Math.floor(Math.random()*COLORS.length)]});
+}
+function drawParticles(){
+  ctx.clearRect(0,0,W,H);
+  particles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0||p.x>W)p.vx*=-1;
+    if(p.y<0||p.y>H)p.vy*=-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.c;ctx.globalAlpha=.6;ctx.fill();
+  });
+  // 连线
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle=`rgba(0,255,213,${.15*(1-dist/120)})`;ctx.lineWidth=.5;ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+window.addEventListener('resize',()=>{W=cvs.width=window.innerWidth;H=cvs.height=window.innerHeight;});
+
+/* ============ 应力副本 ============ */
+const stressRules={humid:{a1:20,a2:60,flag:true,pos:{x:140,y:130}},salt:{a1:25,a2:70,flag:true,pos:{x:400,y:220}},dust:{a1:85,a2:10,flag:false,pos:{x:320,y:140}},wear:{a1:90,a2:5,flag:false,pos:{x:220,y:280}},uv:{a1:40,a2:45,flag:false,pos:{x:300,y:200}}};
+const activeStress=new Set();
+document.querySelectorAll('.skill-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const k=btn.dataset.s;
+    if(activeStress.has(k)){activeStress.delete(k);btn.classList.remove('active');}
+    else{activeStress.add(k);btn.classList.add('active');}
+    updateBoss();
+  });
+});
+function updateBoss(){
+  let a1=0,a2=0,need=false;
+  activeStress.forEach(k=>{a1+=stressRules[k].a1;a2+=stressRules[k].a2;if(stressRules[k].flag)need=true;});
+  a1=Math.min(100,a1);a2=Math.min(100,a2);
+  const a1b=document.getElementById('a1Bar'),a2b=document.getElementById('a2Bar');
+  const a1t=document.getElementById('a1Txt'),a2t=document.getElementById('a2Txt');
+  if(activeStress.size===0){a1b.style.width='100%';a2b.style.width='100%';a1t.textContent='100/100';a2t.textContent='100/100';a1b.classList.remove('low');a2b.classList.remove('low');}
+  else{
+    a1b.style.width=a1+'%';a2b.style.width=a2+'%';a1t.textContent=Math.round(a1)+'/100';a2t.textContent=Math.round(a2)+'/100';
+    a1b.classList.toggle('low',a1<40);a2b.classList.toggle('low',a2<40);
+  }
+  const warn=document.getElementById('bossWarn');
+  if(need&&a2<90){warn.classList.add('show');document.getElementById('cauldron')&&document.getElementById('bossWarn').scrollIntoView?null:null;}
+  else warn.classList.remove('show');
+  // 应力点
+  const pt=document.getElementById('stressPt');
+  if(activeStress.size===0){pt.style.display='none';}
+  else{
+    pt.style.display='';
+    const p=stressRules[activeStress.values().next().value].pos;
+    pt.setAttribute('cx',p.x);pt.setAttribute('cy',p.y);
+  }
+  addXP(5);
+}
+
+/* ============ 产业图鉴 ============ */
+const items=[
+  {id:'pv',title:'分布式光伏',sub:'DISTRIBUTED PV',rarity:'rare',cover:'g1',emoji:'⚡',
+   stats:[{n:'1.529',l:'装机 GW'},{n:'25%',l:'年增长'},{n:'POE',l:'封装'}],
+   para:'孟加拉是南亚光伏装机增速最快的国家之一。分布式光伏在工商业屋顶、园区屋顶的推广，正成为当地电力结构转型的关键抓手。针对<b>高湿 + 盐雾</b>双重应力场景，建议采用<b>POE + 硅胶边框</b>的双道密封方案。',
+   tags:['IEC 61701','POE 封装','含氟背板','PID-free']},
+  {id:'textile',title:'纺织绿色制造',sub:'GREEN TEXTILE',rarity:'epic',cover:'g2',emoji:'🧵',
+   stats:[{n:'384.8',l:'出口 亿美元'},{n:'18%',l:'全球份额'},{n:'60%',l:'中水回用'}],
+   para:'南亚纺织业占全球出口的<b>18%</b>，孟加拉、巴基斯坦、印度合计贡献超 85%。绿色制造路径以<b>光伏 + 储能</b>替代电网高碳电力、以<b>膜处理 + 中水回用</b>替代直排为主线。',
+   tags:['RMG / 纺织','碳足迹','膜处理','中水回用']},
+  {id:'agri',title:'太阳能农业',sub:'SOLAR AGRICULTURE',rarity:'rare',cover:'g3',emoji:'🌾',
+   stats:[{n:'12000+',l:'提水井'},{n:'4-6m',l:'架高'},{n:'60%',l:'柴油节约'}],
+   para:'太阳能农业把光伏板架高 4-6 米，板下种植耐阴作物、板上清洁电力，同时驱动提水泵站与冷链仓储。在孟加拉西北部，光伏提水已覆盖<b>12,000+</b> 社区水井。',
+   tags:['光伏农业','光伏提水','冷链','柴油替代']},
+  {id:'arsenic',title:'除砷净水',sub:'ARSENIC REMOVAL',rarity:'legendary',cover:'g4',emoji:'💧',
+   stats:[{n:'99.6%',l:'除砷率'},{n:'280',l:'m²/g'},{n:'1/3',l:'运维/RO'}],
+   para:'孟加拉恒河三角洲地下水天然含砷，影响近<b>4,700 万</b> 人口。Fe-Mn 复合氧化物材料可在中性 pH 下高效吸附 As(III)/As(V)，结合紫外消毒工艺，单井处理能力达 500 L/h。',
+   tags:['砷去除','Fe-Mn','UV 消毒','RO 对比']},
+  {id:'yunnan',title:'云南硅材料',sub:'YUNNAN SILICON',rarity:'legendary',cover:'g3',emoji:'🪨',
+   stats:[{n:'200万',l:'工业硅 万吨'},{n:'70%',l:'绿色电力'},{n:'通威/协鑫',l:'头部企业'}],
+   para:'云南依托<b>金沙江、澜沧江</b>丰富水电资源，工业硅生产成本低、碳足迹小，是全球多晶硅核心产区。<b>通威、协鑫、大全</b>等企业在此布局，工业硅产能占全国 40%+，为南亚光伏产业提供上游材料支撑。',
+   tags:['工业硅','多晶硅','水电','绿色电力']},
+  {id:'gobi',title:'戈壁光伏基地',sub:'GOBI PV BASE',rarity:'epic',cover:'g1',emoji:'🏜️',
+   stats:[{n:'100 GW',l:'规划装机'},{n:'2000h',l:'年利用小时'},{n:'0.25元',l:'度电成本'}],
+   para:'内蒙古、甘肃、青海、新疆的<b>戈壁荒漠</b>地区，辐照强、土地广，是中国大型光伏基地主战场。<b>库布其、乌兰布和、腾格里</b>沙漠光伏治沙项目实现"板上发电、板下种草、板间养殖"的生态光伏模式。',
+   tags:['沙漠光伏','光伏治沙','大基地','乌兰布和']},
+  {id:'uhv',title:'特高压外送',sub:'ULTRA-HIGH VOLTAGE',rarity:'legendary',cover:'g2',emoji:'⚡',
+   stats:[{n:'±1100 kV',l:'直流电压'},{n:'5000 km',l:'输送距离'},{n:'12 GW',l:'输送容量'}],
+   para:'中国建成全球最完善的<b>特高压交直流电网</b>，将西北戈壁的光伏电力输送至东部负荷中心。<b>白鹤滩-江苏、陕北-湖北</b>等通道实现"西电东送"，为南亚区域电网互联提供中国方案。',
+   tags:['特高压','西电东送','±1100kV','电网互联']}
+];
+const rarityLabel={common:'普通',rare:'稀有',epic:'史诗',legendary:'传说'};
+const invGrid=document.getElementById('invGrid');
+items.forEach((it,idx)=>{
+  const card=document.createElement('div');
+  card.className='item-card card-glass';
+  card.innerHTML=`
+    <div class="rarity ${it.rarity}"></div>
+    <div class="item-cover ${it.cover}"><span>${it.emoji}</span></div>
+    <div class="item-rarity-tag r-tag ${it.rarity}">${rarityLabel[it.rarity]}</div>
+    <div class="item-title">${it.title}</div>
+    <div class="item-stats">
+      ${it.stats.map(s=>`<div class="item-stat"><span class="s-n">${s.n}</span><span class="s-l">${s.l}</span></div>`).join('')}
+    </div>`;
+  card.addEventListener('click',()=>openItem(it));
+  invGrid.appendChild(card);
+});
+function openItem(it){
+  const m=document.getElementById('itemModal');
+  m.innerHTML=`
+    <div class="rarity ${it.rarity}"></div>
+    <div class="im-head">
+      <div class="im-cover ${it.cover}">${it.emoji}</div>
+      <div>
+        <div class="im-title">${it.title}</div>
+        <div class="im-sub">${it.sub} · ${rarityLabel[it.rarity]}</div>
+      </div>
+    </div>
+    <div class="im-stats">
+      ${it.stats.map(s=>`<div class="im-stat"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('')}
+    </div>
+    <div class="im-para">${it.para}</div>
+    <div class="im-tags">${it.tags.map(t=>`<span class="im-tag"># ${t}</span>`).join('')}</div>
+    <button class="im-close" onclick="document.getElementById('itemMask').classList.remove('show')">关闭</button>
+  `;
+  document.getElementById('itemMask').classList.add('show');
+  unlockAch('collector');
+  addXP(10);
+}
+document.getElementById('itemMask').addEventListener('click',e=>{if(e.target.id==='itemMask')e.currentTarget.classList.remove('show');});
+
+/* ============ 材料合成 ============ */
+const materials=[
+  {nm:'POE 胶膜',ico:'🟦',key:'poe'},
+  {nm:'硅胶边框',ico:'🟪',key:'sil'},
+  {nm:'含氟背板',ico:'🟨',key:'flu'},
+  {nm:'Fe-Mn 材料',ico:'🟫',key:'fe'},
+  {nm:'钢化玻璃',ico:'⬜',key:'glass'},
+  {nm:'EVA 胶膜',ico:'🟧',key:'eva'},
+  {nm:'铝边框',ico:'⬛',key:'alu'},
+  {nm:'紫外涂层',ico:'🟩',key:'uv'},
+  {nm:'云南工业硅',ico:'💎',key:'si'},
+  {nm:'多晶硅料',ico:'🔶',key:'poly'},
+  {nm:'N型电池片',ico:'🔷',key:'ncell'},
+  {nm:'焊带汇流条',ico:'🟠',key:'ribbon'}
+];
+const slots=[null,null,null];
+function renderSlots(){
+  const c=document.getElementById('alchSlots');
+  c.innerHTML='';
+  slots.forEach((s,i)=>{
+    const d=document.createElement('div');
+    d.className='alchemy-slot'+(s?' filled':'');
+    d.innerHTML=s?`<span class="slot-ico">${s.ico}</span><span class="slot-nm">${s.nm}</span><span class="slot-empty" style="color:var(--muted)">槽位 ${i+1} · 点击移除</span>`:`<span class="slot-empty">[ 槽位 ${i+1} ] 选择材料</span>`;
+    if(s)d.onclick=()=>{slots[i]=null;renderSlots();renderPool();};
+    c.appendChild(d);
+  });
+  // 提示
+  const filled=slots.filter(Boolean).length;
+  const hint=document.getElementById('alchHint');
+  hint.textContent=filled===0?'等待添加材料...':filled===3?'材料齐全，可以开始合成！':`已添加 ${filled}/3 种材料`;
+}
+function renderPool(){
+  const c=document.getElementById('matPool');
+  c.innerHTML='';
+  materials.forEach(m=>{
+    const used=slots.some(s=>s&&s.key===m.key);
+    const d=document.createElement('div');
+    d.className='mat-chip';d.style.opacity=used?'.4':'1';
+    d.innerHTML=`<span class="m-ico">${m.ico}</span><span class="m-nm">${m.nm}</span>`;
+    d.onclick=()=>{
+      if(used)return;
+      const idx=slots.findIndex(s=>!s);
+      if(idx<0)return;
+      slots[idx]=m;renderSlots();renderPool();
+    };
+    c.appendChild(d);
+  });
+}
+renderSlots();renderPool();
+
+document.getElementById('synthBtn').onclick=()=>{
+  const filled=slots.filter(Boolean).length;
+  if(filled<3){document.getElementById('alchHint').textContent='需要 3 种材料才能合成！';return;}
+  const c=document.getElementById('cauldron');
+  c.classList.add('active');
+  const prog=document.getElementById('synthProg');
+  const bar=document.getElementById('synthBar');
+  const out=document.getElementById('synthOut');
+  prog.classList.add('show');out.classList.remove('show');
+  let p=0;
+  const t=setInterval(()=>{
+    p+=2;bar.style.width=p+'%';
+    if(p>=100){
+      clearInterval(t);c.classList.remove('active');
+      const names=slots.map(s=>s.nm).join(' + ');
+      const keys=slots.map(s=>s.key);
+      const hasFe=keys.includes('fe'),hasPoe=keys.includes('poe'),hasFlu=keys.includes('flu');
+      const hasSi=keys.includes('si'),hasPoly=keys.includes('poly'),hasNcell=keys.includes('ncell');
+      let title='通用封装方案',desc='适用于常规环境，基础防护等级 Tier 2。';
+      if(hasPoe&&hasFlu){title='耐候级双封装方案',desc='POE 胶膜 + 含氟背板，抗盐雾与湿热，通过 IEC 61701 测试，推荐用于孟加拉沿海地区。';}
+      else if(hasFe){title='Fe-Mn 除砷净水模块',desc='Fe-Mn 复合氧化物材料，比表面积 280 m²/g，除砷率 99.6%，适合恒河三角洲农村供水。';}
+      else if(hasSi&&hasPoly){title='云南绿色硅料产业链',desc='云南工业硅 → 多晶硅料，依托金沙江水电实现低碳足迹生产，为全球光伏提供上游材料支撑。';}
+      else if(hasPoly&&hasNcell){title='N型高效组件',desc='多晶硅料 → N型电池片（TOPCon/HJT），转换效率 26%+，是新一代高效组件核心路线。';}
+      else if(slots.every(s=>['poe','sil','glass','eva','alu','uv'].includes(s.key))){title='光伏组件标准封装',desc='玻璃 + EVA/POE + 边框结构，基础耐候等级 Tier 3，适合分布式光伏项目。';}
+      out.innerHTML=`<div class="out-t">✨ 合成成功：${title}</div><div class="out-d">配方：${names}<br>${desc}</div>`;
+      out.classList.add('show');
+      unlockAch('alchemist');addXP(20);
+    }
+  },30);
+};
+
+/* ============ 数据战报：柱状图 ============ */
+const barData=[
+  {ctry:'中国',v:440,cls:'in'},
+  {ctry:'印度',v:78.2,cls:'vn'},
+  {ctry:'越南',v:18.5,cls:'bd'},
+  {ctry:'巴基斯坦',v:3.5,cls:'pk'},
+  {ctry:'孟加拉',v:1.529,cls:'th'}
+];
+const maxV=Math.max(...barData.map(d=>d.v));
+const bc=document.getElementById('barChart');
+barData.forEach(d=>{
+  const row=document.createElement('div');row.className='bar-row';
+  row.innerHTML=`<span class="ctry">${d.ctry}</span><div class="bar-track"><div class="bar-fill ${d.cls}" style="width:0" data-w="${(d.v/maxV*100).toFixed(1)}">${d.v} GW</div></div>`;
+  bc.appendChild(row);
+});
+setTimeout(()=>document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%'),300);
+
+/* 雷达图 */
+function drawRadar(){
+  const axes=['抗盐雾','耐紫外','抗磨损','抗湿热','抗PID','成本'];
+  const data={POE:[90,80,75,85,95,70],EVA:[60,60,70,65,50,90],FeMn:[70,85,60,75,80,75]};
+  const svg=document.getElementById('radarChart');
+  const cx=150,cy=150,R=110;
+  let html='';
+  // 网格
+  for(let lv=1;lv<=4;lv++){
+    const pts=axes.map((_,i)=>{const a=i*Math.PI*2/axes.length-Math.PI/2;return `${cx+R*lv/4*Math.cos(a)},${cy+R*lv/4*Math.sin(a)}`;}).join(' ');
+    html+=`<polygon points="${pts}" fill="none" stroke="rgba(0,255,213,0.2)" stroke-width="1"/>`;
+  }
+  // 轴
+  axes.forEach((a,i)=>{const ang=i*Math.PI*2/axes.length-Math.PI/2;
+    html+=`<line x1="${cx}" y1="${cy}" x2="${cx+R*Math.cos(ang)}" y2="${cy+R*Math.sin(ang)}" stroke="rgba(0,255,213,0.25)"/>`;
+    html+=`<text x="${cx+(R+14)*Math.cos(ang)}" y="${cy+(R+14)*Math.sin(ang)}" fill="#7fa3ba" font-size="10" text-anchor="middle" dominant-baseline="middle" font-family="JetBrains Mono">${a}</text>`;
+  });
+  // 数据
+  const colors={POE:'#00ffd5',EVA:'#ffd166',FeMn:'#a855f7'};
+  Object.keys(data).forEach(k=>{
+    const pts=data[k].map((v,i)=>{const a=i*Math.PI*2/axes.length-Math.PI/2;return `${cx+R*v/100*Math.cos(a)},${cy+R*v/100*Math.sin(a)}`;}).join(' ');
+    html+=`<polygon points="${pts}" fill="${colors[k]}" fill-opacity="0.2" stroke="${colors[k]}" stroke-width="2"/>`;
+  });
+  // 图例
+  let lg=0;
+  Object.keys(data).forEach(k=>{
+    html+=`<rect x="${10+lg*80}" y="10" width="12" height="12" fill="${colors[k]}"/><text x="${26+lg*80}" y="21" fill="#c8e6f4" font-size="11" font-family="JetBrains Mono">${k}</text>`;
+    lg++;
+  });
+  svg.innerHTML=html;
+}
+drawRadar();
+
+/* ============ AI 终端 ============ */
+const TXT={
+  suggests:['分析孟加拉高温环境','纺织产业光伏方案','Fe-Mn 材料特性','云南硅材料优势','中国特高压外送'],
+  reports:[
+    '【报告】针对孟加拉 35-45°C 高温高湿环境：\n  1) 建议采用 POE 胶膜 + 含氟背板的双封装结构，降低 PID 风险；\n  2) 组件倾角建议 22°-25°，兼顾自清洁与辐照接收；\n  3) 跟踪支架需选 304 不锈钢镀锌等级，抵御沿海盐雾；\n  4) 参考 IEC 61701-2 盐雾测试与 IEC 60068-2-78 恒温恒湿标准。',
+    '【报告】南亚纺织绿色制造光伏方案：\n  1) 印染厂屋顶建议 2-5 MW 分布式 + 1 MWh 储能，削减峰期电费 40%+；\n  2) 结合中水回用与膜处理工艺，可减少 60% 新鲜水取用量；\n  3) 孟加拉 RMG 出口额 384.8 亿美元，绿电标签可提升溢价 8%-12%；\n  4) 建议申请 GRS / GOTS 认证以打开欧盟市场。',
+    '【报告】Fe-Mn 复合氧化物除砷材料：\n  1) 比表面积 280 m²/g，对 As(V) 吸附容量达 125 mg/g；\n  2) 中性 pH 下无需预氧化，适配恒河三角洲地下水环境；\n  3) 与 UV 消毒联用，单井处理能力 500 L/h；\n  4) 运维成本仅 RO 工艺 1/3，适合农村分散供水场景。',
+    '【报告】云南硅材料核心优势：\n  1) 金沙江、澜沧江水电资源丰富，工业硅用电 70%+ 来自绿电，碳足迹远低于煤电硅；\n  2) 工业硅产能占全国 40%+，通威、协鑫、大全等头部企业集聚；\n  3) 成本优势明显，为南亚光伏组件提供 60%+ 上游硅料；\n  4) 建议南亚厂商与云南硅企签订长协，锁定低碳硅料供应。',
+    '【报告】中国特高压外送体系：\n  1) 已建成 ±1100kV 直流特高压，输送距离 5000km+，单通道容量 12 GW；\n  2) 西北戈壁光伏基地通过特高压直送东部负荷中心，实现"西电东送"；\n  3) 为南亚区域电网互联提供技术方案（中-缅-孟通道可研中）；\n  4) 配合储能与柔性直流，可平抑光伏波动性，保障电网稳定。'
+  ],
+  warn:'⚠️ 免责声明：本报告基于公开标准与模拟数据，仅供决策参考，实际落地需结合现场勘察与第三方检测。'
+};
+const sugBox=document.getElementById('termSug');
+TXT.suggests.forEach((s,i)=>{
+  const d=document.createElement('div');d.className='sug';d.textContent='💡 '+s;
+  d.onclick=()=>{document.getElementById('termInput').value=s;runReport(i);};
+  sugBox.appendChild(d);
+});
+document.getElementById('termExec').onclick=()=>{
+  const v=document.getElementById('termInput').value.trim();
+  if(!v)return;runReportByKW(v);
+};
+document.getElementById('termInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('termExec').click();});
+function runReportByKW(t){
+  t=t.toLowerCase();let i=0;
+  if(/纺织|textile/.test(t))i=1;
+  else if(/fe-mn|除砷|arsenic/.test(t))i=2;
+  else if(/云南|硅|silicon|yunnan/.test(t))i=3;
+  else if(/特高压|uhv|外送|电网/.test(t))i=4;
+  runReport(i);
+}
+function runReport(idx){
+  const body=document.getElementById('termBody'),input=document.getElementById('termInput');
+  const echo=document.createElement('div');echo.className='t-line';
+  echo.innerHTML=`<span class="t-prompt">solar-brain@sa-pv:~$</span> <span class="t-cmd">${escapeHtml(input.value)}</span>`;
+  body.appendChild(echo);input.value='';
+  const out=document.createElement('div');out.className='t-line t-out';body.appendChild(out);
+  const blink=document.createElement('span');blink.className='blink';body.appendChild(blink);
+  const text=TXT.reports[idx];let i=0;
+  const type=()=>{
+    if(i<text.length){out.textContent=text.slice(0,++i);body.scrollTop=body.scrollHeight;setTimeout(type,18);}
+    else{blink.remove();const w=document.createElement('div');w.className='t-line t-warn';w.textContent=TXT.warn;body.appendChild(w);body.scrollTop=body.scrollHeight;}
+  };
+  type();
+  unlockAch('analyst');addXP(8);
+}
+function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+/* ============ 成就系统 ============ */
+const achievements=[
+  {id:'collector',nm:'图鉴收集者',ico:'📚'},
+  {id:'alchemist',nm:'炼金大师',ico:'⚗️'},
+  {id:'analyst',nm:'决策分析师',ico:'📊'},
+  {id:'fighter',nm:'环境征服者',ico:'⚔️'},
+  {id:'explorer',nm:'探索者',ico:'🧭'},
+  {id:'expert',nm:'光伏专家',ico:'🏆'}
+];
+const unlocked=new Set();
+const achGrid=document.getElementById('achGrid');
+achievements.forEach(a=>{
+  const d=document.createElement('div');d.className='ach';d.id='ach_'+a.id;
+  d.innerHTML=`<span class="a-ico">${a.ico}</span><span class="a-nm">${a.nm}</span>`;
+  achGrid.appendChild(d);
+});
+function unlockAch(id){
+  if(unlocked.has(id))return;
+  unlocked.add(id);
+  const el=document.getElementById('ach_'+id);
+  if(el)el.classList.add('unlocked');
+  addXP(15);
+}
+
+/* ============ XP 系统 ============ */
+let xp=0,lvl=1;
+function addXP(v){
+  xp+=v;
+  const need=lvl*50;
+  const fill=document.getElementById('xpFill');
+  fill.style.width=Math.min(100,xp/need*100)+'%';
+  if(xp>=need){xp=0;lvl++;document.getElementById('xpLvl').textContent=lvl;fill.style.width='0%';}
+}
+
+/* 滚动解锁成就 + 进度 */
+const secIds=['hero','boss','inventory','chinamap','alchemy','dashboard','terminal','achieve'];
+const seenSec=new Set(['hero']);
+window.addEventListener('scroll',()=>{
+  secIds.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&el.getBoundingClientRect().top<window.innerHeight*.6&&!seenSec.has(id)){
+      seenSec.add(id);addXP(10);
+      if(id==='boss')unlockAch('fighter');
+      if(id==='terminal')unlockAch('analyst');
+      if(seenSec.size>=7)unlockAch('expert');
+    }
+  });
+});
+</script>
+
+<!-- ===================== Three.js 3D 中国战略地图 ===================== -->
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const canvas=document.getElementById('map3d');
+if(!canvas){throw new Error('map3d canvas not found');}
+const wrap=canvas.parentElement;
+const tip=document.getElementById('map3dTip');
+
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x050B14,0.008);
+
+const camera=new THREE.PerspectiveCamera(45,1,0.1,2000);
+camera.position.set(0,90,140);
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x050B14,1);
+
+const controls=new OrbitControls(camera,canvas);
+controls.enableDamping=true;controls.dampingFactor=0.08;
+controls.minDistance=60;controls.maxDistance=300;
+controls.maxPolarAngle=Math.PI/2.1;
+controls.autoRotate=true;controls.autoRotateSpeed=0.3;
+
+// ============ 中国简化轮廓 (近似多边形) ============
+const chinaPts=[
+  [-58,0],[-60,12],[-55,24],[-40,38],[-28,46],[-10,52],[6,56],[24,58],[40,54],
+  [54,48],[62,38],[66,26],[60,14],[52,4],[46,-6],[38,-16],[26,-22],[12,-26],
+  [-2,-30],[-16,-26],[-28,-18],[-40,-10],[-50,-4]
+];
+const shape=new THREE.Shape();
+shape.moveTo(chinaPts[0][0],chinaPts[0][1]);
+for(let i=1;i<chinaPts.length;i++)shape.lineTo(chinaPts[i][0],chinaPts[i][1]);
+
+// 地面底板（带发光描边）
+const baseGeo=new THREE.ExtrudeGeometry(shape,{depth:4,bevelEnabled:true,bevelSize:1.5,bevelThickness:1.5,bevelSegments:3});
+const baseMat=new THREE.MeshStandardMaterial({color:0x0a1f33,metalness:0.8,roughness:0.3,emissive:0x003355,emissiveIntensity:0.4});
+const base=new THREE.Mesh(baseGeo,baseMat);
+base.position.z=-2;
+scene.add(base);
+
+// 描边发光
+const edges=new THREE.EdgesGeometry(new THREE.ShapeGeometry(shape));
+const lineMat=new THREE.LineBasicMaterial({color:0x00ffd5,transparent:true,opacity:0.8});
+const outline=new THREE.LineSegments(edges,lineMat);
+outline.position.z=2.5;
+scene.add(outline);
+
+// ============ 自定义着色器地面网格 ============
+const gridUniforms={
+  uTime:{value:0},
+  uColor:{value:new THREE.Color(0x00ffd5)}
+};
+const gridMat=new THREE.ShaderMaterial({
+  uniforms:gridUniforms,
+  transparent:true,
+  side:THREE.DoubleSide,
+  vertexShader:`
+    varying vec2 vUv;
+    void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}
+  `,
+  fragmentShader:`
+    varying vec2 vUv;
+    uniform float uTime;
+    uniform vec3 uColor;
+    void main(){
+      vec2 g=fract(vUv*40.0);
+      float line=smoothstep(0.96,1.0,g.x)+smoothstep(0.96,1.0,g.y);
+      float scan=sin(vUv.y*6.28-uTime*1.5)*0.5+0.5;
+      float alpha=line*0.6+scan*0.15;
+      gl_FragColor=vec4(uColor,alpha*0.5);
+    }
+  `
+});
+const gridPlane=new THREE.Mesh(new THREE.PlaneGeometry(400,400),gridMat);
+gridPlane.rotation.x=-Math.PI/2;
+gridPlane.position.y=-3;
+scene.add(gridPlane);
+
+// ============ 基地数据 ============
+const bases=[
+  {nm:'云南保山',type:'silicon',pos:[-44,-6],cap:'工业硅 50万吨',desc:'全球最大工业硅基地',color:0x00ffd5},
+  {nm:'云南昆明',type:'silicon',pos:[-34,-2],cap:'多晶硅 40万吨',desc:'通威/协鑫多晶硅',color:0x00ffd5},
+  {nm:'内蒙古包头',type:'solar',pos:[8,40],cap:'光伏 20 GW',desc:'沙漠光伏治沙',color:0xffd166},
+  {nm:'甘肃酒泉',type:'solar',pos:[-10,26],cap:'光伏 15 GW',desc:'风电光伏大基地',color:0xffd166},
+  {nm:'青海格尔木',type:'solar',pos:[-28,18],cap:'光伏 12 GW',desc:'柴达木盆地光伏',color:0xffd166},
+  {nm:'新疆哈密',type:'solar',pos:[-44,32],cap:'光伏 10 GW',desc:'东疆光伏基地',color:0xffd166},
+  {nm:'江苏常州',type:'module',pos:[46,16],cap:'组件 80 GW',desc:'天合/晶澳组件',color:0xa855f7},
+  {nm:'河北保定',type:'module',pos:[30,38],cap:'组件 50 GW',desc:'英利/晶科组件',color:0xa855f7},
+  {nm:'广东深圳',type:'demand',pos:[30,-24],cap:'负荷 100 GW',desc:'大湾区负荷中心',color:0xff3a6a},
+  {nm:'上海',type:'demand',pos:[58,8],cap:'负荷 80 GW',desc:'长三角负荷中心',color:0xff3a6a}
+];
+
+// ============ 发光柱体 (着色器) ============
+const pillarGeo=new THREE.CylinderGeometry(1.2,1.2,1,8,1,true);
+const pillarMat=new THREE.ShaderMaterial({
+  uniforms:{uTime:{value:0},uColor:{value:new THREE.Color(0x00ffd5)},uH:{value:1}},
+  transparent:true,side:THREE.DoubleSide,
+  vertexShader:`
+    varying vec3 vPos;varying float vY;
+    uniform float uH;
+    void main(){vY=position.y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}
+  `,
+  fragmentShader:`
+    varying float vY;
+    uniform float uTime;uniform vec3 uColor;uniform float uH;
+    void main(){
+      float t=vY/uH;
+      float glow=sin(uTime*2.0+vY*0.5)*0.3+0.7;
+      vec3 col=uColor*glow;
+      float alpha=t*0.9+0.1;
+      gl_FragColor=vec4(col,alpha);
+    }
+  `
+});
+
+const markers=[];
+bases.forEach((b,i)=>{
+  const h=8+Math.random()*14;
+  const g=pillarGeo.clone();g.scale(1,h,1);
+  const m=new THREE.Mesh(g,pillarMat.clone());
+  m.position.set(b.pos[0],h/2,b.pos[1]);
+  m.material.uniforms.uColor.value.set(b.color);
+  m.material.uniforms.uH.value=h;
+  scene.add(m);
+  // 顶部光球
+  const topGeo=new THREE.SphereGeometry(2,16,16);
+  const topMat=new THREE.MeshBasicMaterial({color:b.color,transparent:true,opacity:0.9});
+  const top=new THREE.Mesh(topGeo,topMat);
+  top.position.set(b.pos[0],h,b.pos[1]);
+  scene.add(top);
+  // 地面光圈
+  const ringGeo=new THREE.RingGeometry(2.5,4,32);
+  const ringMat=new THREE.MeshBasicMaterial({color:b.color,transparent:true,opacity:0.4,side:THREE.DoubleSide});
+  const ring=new THREE.Mesh(ringGeo,ringMat);
+  ring.rotation.x=-Math.PI/2;
+  ring.position.set(b.pos[0],0.3,b.pos[1]);
+  scene.add(ring);
+  markers.push({mesh:m,top,ring,data:b,h});
+});
+
+// ============ 飞线 (云南硅料 -> 需求中心) ============
+const flyLines=[
+  {from:'云南保山',to:'江苏常州'},
+  {from:'云南昆明',to:'上海'},
+  {from:'内蒙古包头',to:'广东深圳'},
+  {from:'甘肃酒泉',to:'河北保定'}
+];
+const flyMeshes=[];
+flyLines.forEach(fl=>{
+  const f=bases.find(b=>b.nm===fl.from),t=bases.find(b=>b.nm===fl.to);
+  if(!f||!t)return;
+  const start=new THREE.Vector3(f.pos[0],4,f.pos[1]);
+  const end=new THREE.Vector3(t.pos[0],4,t.pos[1]);
+  const mid=new THREE.Vector3().addVectors(start,end).multiplyScalar(0.5);
+  mid.y+=40;
+  const curve=new THREE.QuadraticBezierCurve3(start,mid,end);
+  const pts=curve.getPoints(60);
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const mat=new THREE.LineBasicMaterial({color:0x00ffd5,transparent:true,opacity:0.6});
+  const line=new THREE.Line(geo,mat);
+  scene.add(line);
+  // 流动光点
+  const dotGeo=new THREE.SphereGeometry(1.2,8,8);
+  const dotMat=new THREE.MeshBasicMaterial({color:0x00ffd5});
+  const dot=new THREE.Mesh(dotGeo,dotMat);
+  scene.add(dot);
+  flyMeshes.push({curve,dot});
+});
+
+// ============ 灯光 ============
+scene.add(new THREE.AmbientLight(0x334466,0.6));
+const dl=new THREE.DirectionalLight(0xffffff,0.8);
+dl.position.set(50,80,50);
+scene.add(dl);
+const pl=new THREE.PointLight(0x00ffd5,1,200);
+pl.position.set(0,60,0);
+scene.add(pl);
+
+// ============ 交互 (射线) ============
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+let hovered=null;
+canvas.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect();
+  mouse.x=((e.clientX-r.left)/r.width)*2-1;
+  mouse.y=-((e.clientY-r.top)/r.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(markers.map(m=>m.mesh));
+  if(hits.length>0){
+    const mk=markers.find(m=>m.mesh===hits[0].object);
+    if(mk){
+      hovered=mk;
+      tip.style.display='block';
+      tip.style.left=(e.clientX-r.left+12)+'px';
+      tip.style.top=(e.clientY-r.top+12)+'px';
+      tip.innerHTML=`<div class="t-name">${mk.data.nm}</div>
+        <div class="t-row">类型：<span class="t-val">${mk.data.type}</span></div>
+        <div class="t-row">规模：<span class="t-val">${mk.data.cap}</span></div>
+        <div class="t-row">${mk.data.desc}</div>`;
+      canvas.style.cursor='pointer';
+    }
+  } else {hovered=null;tip.style.display='none';canvas.style.cursor='default';}
+});
+canvas.addEventListener('mouseleave',()=>{tip.style.display='none';});
+
+// ============ 动画循环 ============
+const clock=new THREE.Clock();
+function animate(){
+  const t=clock.getElapsedTime();
+  gridUniforms.uTime.value=t;
+  markers.forEach(m=>{
+    m.mesh.material.uniforms.uTime.value=t;
+    m.top.scale.setScalar(1+Math.sin(t*2+m.h)*0.15);
+    m.ring.scale.setScalar(1+Math.sin(t*1.5)*0.2);
+  });
+  flyMeshes.forEach((f,i)=>{
+    const p=(t*0.15+i*0.25)%1;
+    const pt=f.curve.getPointAt(p);
+    f.dot.position.copy(pt);
+  });
+  controls.update();
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ============ 自适应 ============
+function resize(){
+  const w=wrap.clientWidth,h=520;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize',resize);
+</script>
+</body>
+</html>
