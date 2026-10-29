@@ -389,6 +389,23 @@ footer .ft{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--mut
 .map3d-card .mc-n{font-family:"Orbitron",monospace;font-size:20px;font-weight:700;color:var(--cyan);text-shadow:0 0 10px rgba(0,255,213,0.4)}
 .map3d-card .mc-l{font-size:11px;color:var(--muted);margin-top:2px;font-family:"JetBrains Mono",monospace}
 
+/* ============ 战斗结算面板 ============ */
+.boss-result{margin-top:14px;border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:rgba(5,15,28,0.6);display:none;position:relative;overflow:hidden}
+.boss-result.show{display:block;animation:fadeIn .45s ease}
+.boss-result::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.br-head{display:flex;align-items:center;gap:14px}
+.br-rank{font-family:"Orbitron",monospace;font-size:42px;font-weight:900;line-height:1;width:62px;height:62px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid}
+.br-rank.s{color:var(--gold);border-color:var(--gold);text-shadow:0 0 16px rgba(255,209,102,.8);box-shadow:0 0 20px rgba(255,209,102,.35),inset 0 0 12px rgba(255,209,102,.15)}
+.br-rank.a{color:var(--cyan);border-color:var(--cyan);text-shadow:0 0 16px rgba(0,255,213,.8);box-shadow:0 0 20px rgba(0,255,213,.3),inset 0 0 12px rgba(0,255,213,.12)}
+.br-rank.b{color:#00c2ff;border-color:#00c2ff;text-shadow:0 0 12px rgba(0,194,255,.7)}
+.br-rank.c{color:var(--red);border-color:var(--red);text-shadow:0 0 16px rgba(255,58,106,.8);box-shadow:0 0 20px rgba(255,58,106,.3);animation:warnBlink 1s infinite}
+.br-verdict .v-t{font-size:15px;font-weight:700;margin-bottom:3px}
+.br-verdict .v-d{font-size:12px;color:var(--muted);line-height:1.6}
+.br-reco{margin-top:10px;padding:9px 12px;border-left:3px solid var(--cyan);background:rgba(0,255,213,0.06);font-size:12px;line-height:1.7;color:#c8e6f4;border-radius:0 8px 8px 0}
+.br-reco b{color:var(--cyan)}
+.br-go{margin-top:10px;display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:8px;border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;background:rgba(0,255,213,0.08);transition:all .25s;font-family:"JetBrains Mono",monospace}
+.br-go:hover{background:rgba(0,255,213,0.2);box-shadow:0 0 14px rgba(0,255,213,.4)}
+
 /* ============ 响应式 ============ */
 @media(max-width:900px){
   .boss-arena,.alchemy-wrap,.dashboard{grid-template-columns:1fr}
@@ -555,6 +572,17 @@ footer .ft{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--mut
       </div>
       <div class="boss-warn" id="bossWarn">
         ⚠️ 防护缺口：建议引入耐老化界面封装材料（参考 IEC 61701 标准），A2 层将持续受到侵蚀！
+      </div>
+      <div class="boss-result" id="bossResult">
+        <div class="br-head">
+          <div class="br-rank a" id="brRank">A</div>
+          <div class="br-verdict">
+            <div class="v-t" id="brTitle">战斗结算</div>
+            <div class="v-d" id="brDesc"></div>
+          </div>
+        </div>
+        <div class="br-reco" id="brReco"></div>
+        <span class="br-go" id="brGo">⚗️ 携带配方前往材料合成实验室 →</span>
       </div>
     </div>
   </div>
@@ -781,8 +809,52 @@ function updateBoss(){
     const p=stressRules[activeStress.values().next().value].pos;
     pt.setAttribute('cx',p.x);pt.setAttribute('cy',p.y);
   }
+  updateResult(a1,a2,need);
   addXP(5);
 }
+
+/* ============ 战斗结算：评级 + 推荐配方 + 联动合成 ============ */
+const RECIPES={
+  corrosive:{name:'耐候级双封装',keys:['poe','flu','sil'],desc:'POE 胶膜 + 含氟背板 + 硅胶边框，通过 IEC 61701 盐雾测试，抵御湿热与盐雾侵蚀。'},
+  abrasive:{name:'前表面强化',keys:['glass','uv','alu'],keysCn:['钢化玻璃','紫外涂层','铝边框'],desc:'钢化玻璃 + 抗积尘紫外涂层 + 阳极氧化铝边框，抵抗积尘与清洗磨损。'},
+  mixed:{name:'全能均衡型',keys:['poe','glass','uv'],desc:'POE 胶膜 + 钢化玻璃 + 紫外涂层，兼顾结构可靠性与表面功能，适配复合应力场景。'}
+};
+let curRecipe=null;
+function updateResult(a1,a2,need){
+  const box=document.getElementById('bossResult');
+  if(activeStress.size===0){box.classList.remove('show');curRecipe=null;return;}
+  let score=Math.round((a1+a2)/2);
+  let rank='s',title='S 级 · 完美压制';
+  if(need&&a2<90&&score>70)score=70; // 有防护缺口则压分
+  if(a1<40||a2<40)score=Math.min(score,45);
+  if(score>=90){rank='s';title='S 级 · 完美压制';}
+  else if(score>=70){rank='a';title='A 级 · 稳定控制';}
+  else if(score>=50){rank='b';title='B 级 · 勉强支撑';}
+  else{rank='c';title='C 级 · 防线告急';}
+  const rk=document.getElementById('brRank');
+  rk.textContent=rank.toUpperCase();rk.className='br-rank '+rank;
+  document.getElementById('brTitle').textContent=title;
+  const weak=a1<a2?'A1 前表面功能层':'A2 结构可靠性层';
+  document.getElementById('brDesc').textContent=`综合评分 ${score}/100 · 短板：${weak}（${Math.round(Math.min(a1,a2))}/100）`;
+  // 推荐配方
+  const hasCorr=[...activeStress].some(k=>['humid','salt','uv'].includes(k));
+  const hasAbr=[...activeStress].some(k=>['dust','wear'].includes(k));
+  const r=(hasCorr&&hasAbr)?RECIPES.mixed:hasCorr?RECIPES.corrosive:RECIPES.abrasive;
+  curRecipe=r;
+  document.getElementById('brReco').innerHTML=`💡 推荐配方：<b>${r.name}</b> — ${r.desc}`;
+  box.classList.add('show');
+}
+document.getElementById('brGo').onclick=()=>{
+  if(!curRecipe)return;
+  // 自动填入推荐配方并跳转合成实验室
+  curRecipe.keys.forEach((k,i)=>{
+    const m=materials.find(x=>x.key===k);
+    if(m)slots[i]=m;
+  });
+  renderSlots();renderPool();
+  document.getElementById('alchemy').scrollIntoView({behavior:'smooth'});
+  document.getElementById('alchHint').textContent=`已携带「${curRecipe.name}」配方，点击开始合成！`;
+};
 
 /* ============ 产业图鉴 ============ */
 const items=[
